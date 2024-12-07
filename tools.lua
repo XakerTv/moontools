@@ -15,11 +15,11 @@ local dlstatus = require('moonloader').download_status
 encoding.default = 'CP1251'
 u8 = encoding.UTF8
 
--- Функция для декодирования JSON
-local json = require 'json'
+-- Подключаем dkjson для работы с JSON
+local dkjson = require 'dkjson'
 
 function decodeJson(data)
-    return json.decode(data)
+    return dkjson.decode(data)
 end
 
 function update()
