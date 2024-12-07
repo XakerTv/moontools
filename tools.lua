@@ -26,14 +26,47 @@ local update_path = getWorkingDirectory() .. '/update.ini'
 local script_url = "https://github.com/XakerTv/moontools/raw/refs/heads/main/tools.lua" -- lua
 local script_path = thisScript().path
 
+-- Функция для загрузки с повторными попытками
+function downloadWithRetry(url, path, retries, delay)
+    local attempt = 1
+
+    local function tryDownload()
+        if attempt > retries then
+            sampAddChatMessage(scriptName .. "Ошибка загрузки после " .. retries .. " попыток.", 0xFF0000)
+            return false
+        end
+
+        sampAddChatMessage(scriptName .. "Попытка загрузки " .. attempt .. "...", 0xFFFFFF)
+        downloadUrlToFile(url, path, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                sampAddChatMessage(scriptName .. "Файл успешно загружен.", 0x00FF00)
+                return true
+            else
+                sampAddChatMessage(scriptName .. "Ошибка загрузки. Статус: " .. tostring(status), 0xFF0000)
+                attempt = attempt + 1
+                lua_thread.create(function()
+                    wait(delay)   -- Ожидание перед следующей попыткой
+                    tryDownload() -- Рекурсивный вызов
+                end)
+            end
+        end)
+    end
+
+    tryDownload() -- Начинаем первую попытку
+end
+
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
     sampRegisterChatCommand('update', cmd_update)
 
-    _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-    nick = sampGetPlayerNickname(id)
+    local success, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+    if not success then
+        sampAddChatMessage(scriptName .. 'Ошибка получения ID игрока.', 0xFF0000)
+        return
+    end
+    local nick = sampGetPlayerNickname(id)
     sampAddChatMessage(scriptName .. " Скрипт готов к работе.", 0xFFFFFF)
     sampAddChatMessage(scriptName .. " С возвращением, " .. nick, 0xFFFFFF)
     sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
@@ -49,57 +82,67 @@ function cmd_update()
 
     -- Удаляем временный файл update.ini, если он существует
     if doesFileExist(update_path) then
-        local success, errorMsg = os.remove(update_path)
+        local success = os.remove(update_path)
         if not success then
-            sampAddChatMessage(scriptName .. 'Ошибка удаления update.ini: ' .. errorMsg, 0xFF0000)
+            sampAddChatMessage(scriptName .. 'Ошибка удаления update.ini.', 0xFF0000)
             return
         end
     end
 
-    -- Загружаем файл update.ini
-    downloadUrlToFile(update_url, update_path, function(id, status)
-        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            local updateIni = inicfg.load(nil, update_path)
-            if tonumber(updateIni.info.vers) > script_vers then
-                sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
+    -- Загружаем файл update.ini с ретрай логикой
+    local success = downloadWithRetry(update_url, update_path, 3, 500)
+    if not success then
+        sampAddChatMessage(scriptName .. "Ошибка загрузки update.ini после нескольких попыток.", 0xFF0000)
+        return
+    end
 
-                -- Удаляем старый скрипт, если он существует
-                if doesFileExist(script_path) then
-                    local success, errorMsg = os.remove(script_path)
-                    if not success then
-                        sampAddChatMessage(scriptName .. 'Ошибка удаления скрипта: ' .. errorMsg, 0xFF0000)
-                        return
-                    end
-                end
+    -- Загружаем ini-файл
+    local updateIni = inicfg.load(nil, update_path)
 
-                -- Загружаем новый скрипт
-                downloadUrlToFile(script_url, script_path, function(id, status)
-                    if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                        sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
-                        thisScript():reload()
-                    else
-                        sampAddChatMessage(
-                            scriptName .. 'Ошибка загрузки нового скрипта. Код статуса: ' .. tostring(status), 0xFF0000)
-                    end
-                end)
-            else
-                sampAddChatMessage(scriptName .. 'Обновлений не найдено. Текущая версия: ' .. script_vers_text, 0xFFFFFF)
+    -- Проверяем, загружен ли ini-файл
+    if not updateIni then
+        sampAddChatMessage(scriptName .. 'Ошибка: не удалось загрузить update.ini.', 0xFF0000)
+        os.remove(update_path)
+        return
+    end
+
+    -- Добавление проверки на наличие секции [info] и полей vers/vers_text
+    if not updateIni.info or not updateIni.info.vers or not updateIni.info.vers_text then
+        sampAddChatMessage(scriptName .. 'Ошибка: update.ini повреждён или имеет неверный формат.', 0xFF0000)
+        os.remove(update_path)
+        return
+    end
+
+    -- Проверяем версию
+    if tonumber(updateIni.info.vers) > script_vers then
+        sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
+
+        -- Удаляем старый скрипт, если он существует
+        if doesFileExist(script_path) then
+            local success = os.remove(script_path)
+            if not success then
+                sampAddChatMessage(scriptName .. 'Ошибка удаления старого скрипта.', 0xFF0000)
+                return
             end
-
-            os.remove(update_path)
-        else
-            -- Добавляем расшифровку кодов статуса
-            local status_message = {
-                [dlstatus.STATUS_FAILED] = "Сбой загрузки.",
-                [dlstatus.STATUS_DOWNLOADINGDATA] = "Загрузка данных.",
-                [dlstatus.STATUS_ENDDOWNLOADDATA] = "Загрузка завершена.",
-                [dlstatus.STATUS_DOWNLOADPENDING] = "Загрузка уже выполняется.",
-                [dlstatus.STATUS_REQUESTREFUSED] = "Сервер отклонил запрос.",
-                [dlstatus.STATUS_WRONGURL] = "Неверный URL.",
-                [dlstatus.STATUS_UNKNOWNERROR] = "Неизвестная ошибка."
-            }
-            local error_msg = status_message[status] or "Неизвестный код статуса: " .. tostring(status)
-            sampAddChatMessage(scriptName .. 'Ошибка загрузки update.ini. ' .. error_msg, 0xFF0000)
         end
-    end)
+
+        -- Загружаем новый скрипт
+        downloadUrlToFile(script_url, script_path, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
+                sampAddChatMessage(scriptName .. '========================ОБНОВЛЕНИЕ========================', -1)
+                sampAddChatMessage(scriptName .. 'Добавлено:', -1)
+                sampAddChatMessage(scriptName .. '- Автообновление скрипта', -1)
+                thisScript():reload()
+            else
+                sampAddChatMessage(
+                    scriptName .. 'Ошибка загрузки нового скрипта. Код статуса: ' .. tostring(status), 0xFF0000)
+            end
+        end)
+    else
+        sampAddChatMessage(scriptName .. 'Обновлений не найдено. Текущая версия: ' .. script_vers_text, 0xFFFFFF)
+    end
+
+    -- Удаляем временный файл update.ini
+    os.remove(update_path)
 end
