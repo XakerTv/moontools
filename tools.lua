@@ -10,8 +10,8 @@ local inicfg = require 'inicfg'
 
 update_status = false
 
-local script_vers = 3
-local script_vers_text = "1.03"
+local script_vers = 4
+local script_vers_text = "1.04"
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -47,7 +47,7 @@ function main()
                     sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ ' .. scriptVersion .. ' ==============',
                         0x8B59FF)
                     sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
-                    sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
+                    sampAddChatMessage(scriptName .. '- Функция автообновления [FIXED]', -1)
                     thisScript():reload() -- Перезагрузка скрипта
                 elseif status == dlstatus.STATUS_ERROR then
                     sampAddChatMessage(scriptName .. ' Ошибка загрузки нового скрипта.', 0xFF0000)
