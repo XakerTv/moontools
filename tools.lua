@@ -8,8 +8,10 @@ local dlstatus = require('moonloader').download_status
 local inicfg = require 'inicfg'
 local keys = require "vkeys"
 local imgui = require 'encoding'
+local encoding = require "encoding"
+
 encoding.default = 'CP1251'
-u8 = encoding.UTF8
+u8 = encoding.UTF8 -- перед main можешь пихнуть
 
 update_state = false
 
