@@ -15,6 +15,13 @@ local dlstatus = require('moonloader').download_status
 encoding.default = 'CP1251'
 u8 = encoding.UTF8
 
+-- Функция для декодирования JSON
+local json = require 'json'
+
+function decodeJson(data)
+    return json.decode(data)
+end
+
 function update()
     local raw = 'https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/updater.json'
     local f = {}
@@ -31,19 +38,19 @@ function update()
     function f:download()
         local response = requests.get(raw)
         if response.status_code == 200 then
-            downloadUrlToFile(decodeJson(response.text)['url'], thisScript().path, function(id, status, p1, p2)
-                print('Скачиваю ' .. decodeJson(response.text)['url'] .. ' в ' .. thisScript().path)
+            local tempPath = getWorkingDirectory() .. '\\temp_script.lua'
+            downloadUrlToFile(decodeJson(response.text)['url'], tempPath, function(id, status)
                 if status == dlstatus.STATUSEX_ENDDOWNLOAD then
-                    sampAddChatMessage('Скрипт обновлен, перезагрузка...', -1)
+                    os.rename(tempPath, thisScript().path) -- Заменяем текущий скрипт
+                    sampAddChatMessage(scriptName .. ' Скрипт обновлен. Перезагрузка...', -1)
                     thisScript():reload()
-                    sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ' .. scriptVersion .. '==============',
-                        0x8B59FF)
-                    sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
-                    sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
+                elseif status == dlstatus.STATUSEX_ERROR then
+                    sampAddChatMessage(scriptName .. ' Ошибка скачивания обновления.', -1)
                 end
             end)
         else
-            sampAddChatMessage('Ошибка, невозможно установить обновление, код: ' .. response.status_code, -1)
+            sampAddChatMessage(scriptName .. ' Ошибка: невозможно установить обновление. Код: ' .. response.status_code,
+                -1)
         end
     end
 
@@ -56,7 +63,7 @@ function main()
     -- Автообновление
     local updater = update()
     local lastVersion = updater:getLastVersion()
-    if lastVersion ~= script_version() then
+    if lastVersion ~= scriptVersion then
         sampAddChatMessage(scriptName .. " Доступна новая версия скрипта: " .. lastVersion, 0xFFFF00)
         updater:download()
         return
