@@ -15,6 +15,10 @@ u8 = encoding.UTF8 -- перед main можешь пихнуть
 
 update_state = false
 
+scriptName = "{8B59FF}[ Luna Tools ]{FFFFFF}"
+betaScriptName = "[ Luna | DeBug ]"
+scriptVersion = "1a"
+
 local script_vers = 2
 local script_vers_text = '2.0'
 
