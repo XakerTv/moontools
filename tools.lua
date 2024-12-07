@@ -1,6 +1,7 @@
 script_name('MoonTools')
 script_author('Tech')
 script_description('AutoUpdate')
+script_version('1')
 
 require 'lib.moonloader'
 local dlstatus = require('moonloader').download_status
@@ -12,8 +13,8 @@ u8 = encoding.UTF8
 
 update_state = false
 
-local script_vers = 1
-local script_vers_text = '1.0'
+local script_vers = 2
+local script_vers_text = '2.0'
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini" -- ini
 local update_path = getWorkingDirectory() .. '/update.ini'
@@ -29,6 +30,10 @@ function main()
 
     _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
     nick = sampGetPlayerNickname(id)
+    sampAddChatMessage(scriptName .. " Скрипт готов к работе.", 0xFFFFFF)
+    sampAddChatMessage(scriptName .. " С возвращением, " .. nick, 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " Версия скрипта: " .. scriptVersion, 0xBFBFBF)
 
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
@@ -47,7 +52,11 @@ function main()
         if update_state then
             downloadUrlToFile(script_url, script_path, function(id, status)
                 if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                    sampAddChatMessage(scriptName .. 'Скрипт успешно обновлён!', -1)
+                    sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
+                    sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ' .. scriptVersion .. '==============',
+                        0x8B59FF)
+                    sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
+                    sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
                     thisScript():reload()
                 end
             end)
