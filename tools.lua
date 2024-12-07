@@ -47,6 +47,11 @@ end
 function cmd_update()
     sampAddChatMessage(scriptName .. 'Проверка обновлений...', 0xFFFFFF)
 
+    -- Удаляем временный файл, если он остался от предыдущей загрузки
+    if doesFileExist(update_path) then
+        os.remove(update_path)
+    end
+
     -- Загрузка файла update.ini
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
@@ -54,6 +59,11 @@ function cmd_update()
             if tonumber(updateIni.info.vers) > script_vers then
                 sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
                 update_state = true
+
+                -- Проверяем, занят ли файл скрипта
+                if doesFileExist(script_path) then
+                    os.remove(script_path) -- Удаляем старый скрипт
+                end
 
                 -- Загрузка нового скрипта
                 downloadUrlToFile(script_url, script_path, function(id, status)
