@@ -9,7 +9,7 @@ local inicfg = require 'inicfg'
 local encoding = require "encoding"
 
 encoding.default = 'CP1251'
-u8 = encoding.UTF8 -- перед main можешь пихнуть
+u8 = encoding.UTF8 -- РїРµСЂРµРґ main РјРѕР¶РµС€СЊ РїРёС…РЅСѓС‚СЊ
 
 update_state = false
 
@@ -17,8 +17,8 @@ scriptName = "{8B59FF}[ Luna Tools ]{FFFFFF}"
 betaScriptName = "[ Luna | DeBug ]"
 scriptVersion = "1a"
 
-local script_vers = 2
-local script_vers_text = '2.0'
+local script_vers = 1
+local script_vers_text = '1.0'
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini" -- ini
 local update_path = getWorkingDirectory() .. '/update.ini'
@@ -26,18 +26,52 @@ local update_path = getWorkingDirectory() .. '/update.ini'
 local script_url = "https://github.com/XakerTv/moontools/raw/refs/heads/main/tools.lua" -- lua
 local script_path = thisScript().path
 
+-- Р¤СѓРЅРєС†РёСЏ РґР»СЏ Р·Р°РіСЂСѓР·РєРё СЃ РїРѕРІС‚РѕСЂРЅС‹РјРё РїРѕРїС‹С‚РєР°РјРё
+function downloadWithRetry(url, path, retries, delay)
+    local attempt = 0
+    while attempt < retries do
+        attempt = attempt + 1
+        sampAddChatMessage(scriptName .. "РџРѕРїС‹С‚РєР° Р·Р°РіСЂСѓР·РєРё " .. attempt, 0xFFFFFF)
+
+        -- Р’С‹Р·РѕРІ С„СѓРЅРєС†РёРё Р·Р°РіСЂСѓР·РєРё
+        local success = false
+        downloadUrlToFile(url, path, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                success = true
+                sampAddChatMessage(scriptName .. "Р¤Р°Р№Р» СѓСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅ.", 0x00FF00)
+            else
+                -- Р›РѕРіРёСЂРѕРІР°РЅРёРµ СЃС‚Р°С‚СѓСЃР° РѕС€РёР±РєРё Р·Р°РіСЂСѓР·РєРё
+                sampAddChatMessage(scriptName .. "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё. РЎС‚Р°С‚СѓСЃ: " .. tostring(status), 0xFF0000)
+            end
+        end)
+
+        -- РџСЂРѕРІРµСЂСЏРµРј, СѓРґР°Р»РѕСЃСЊ Р»Рё СЃРєР°С‡Р°С‚СЊ
+        if success then
+            return true
+        else
+            sampAddChatMessage(scriptName .. "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё. РџРѕРїС‹С‚РєР° " .. attempt, 0xFF0000)
+            wait(delay) -- Р—Р°РґРµСЂР¶РєР° РїРµСЂРµРґ СЃР»РµРґСѓСЋС‰РµР№ РїРѕРїС‹С‚РєРѕР№
+        end
+    end
+    return false
+end
+
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
     sampRegisterChatCommand('update', cmd_update)
 
-    _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
-    nick = sampGetPlayerNickname(id)
-    sampAddChatMessage(scriptName .. " Скрипт готов к работе.", 0xFFFFFF)
-    sampAddChatMessage(scriptName .. " С возвращением, " .. nick, 0xFFFFFF)
-    sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
-    sampAddChatMessage(betaScriptName .. " Версия скрипта: " .. scriptVersion, 0xBFBFBF)
+    local success, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
+    if not success then
+        sampAddChatMessage(scriptName .. 'РћС€РёР±РєР° РїРѕР»СѓС‡РµРЅРёСЏ ID РёРіСЂРѕРєР°.', 0xFF0000)
+        return
+    end
+    local nick = sampGetPlayerNickname(id)
+    sampAddChatMessage(scriptName .. " РЎРєСЂРёРїС‚ РіРѕС‚РѕРІ Рє СЂР°Р±РѕС‚Рµ.", 0xFFFFFF)
+    sampAddChatMessage(scriptName .. " РЎ РІРѕР·РІСЂР°С‰РµРЅРёРµРј, " .. nick, 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " РћС‚РєСЂС‹С‚СЊ РіР»Р°РІРЅРѕРµ РјРµРЅСЋ: /mtools", 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " Р’РµСЂСЃРёСЏ СЃРєСЂРёРїС‚Р°: " .. scriptVersion, 0xBFBFBF)
 
     while true do
         wait(0)
@@ -45,61 +79,68 @@ function main()
 end
 
 function cmd_update()
-    sampAddChatMessage(scriptName .. 'Проверка обновлений...', 0xFFFFFF)
+    sampAddChatMessage(scriptName .. 'РџСЂРѕРІРµСЂРєР° РѕР±РЅРѕРІР»РµРЅРёР№...', 0xFFFFFF)
 
-    -- Удаляем временный файл update.ini, если он существует
+    -- РЈРґР°Р»СЏРµРј РІСЂРµРјРµРЅРЅС‹Р№ С„Р°Р№Р» update.ini, РµСЃР»Рё РѕРЅ СЃСѓС‰РµСЃС‚РІСѓРµС‚
     if doesFileExist(update_path) then
-        local success, errorMsg = os.remove(update_path)
+        local success = os.remove(update_path)
         if not success then
-            sampAddChatMessage(scriptName .. 'Ошибка удаления update.ini: ' .. errorMsg, 0xFF0000)
+            sampAddChatMessage(scriptName .. 'РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ update.ini.', 0xFF0000)
             return
         end
     end
 
-    -- Загружаем файл update.ini
-    downloadUrlToFile(update_url, update_path, function(id, status)
-        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            local updateIni = inicfg.load(nil, update_path)
-            if tonumber(updateIni.info.vers) > script_vers then
-                sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
+    -- Р—Р°РіСЂСѓР¶Р°РµРј С„Р°Р№Р» update.ini СЃ СЂРµС‚СЂР°Р№ Р»РѕРіРёРєРѕР№
+    local success = downloadWithRetry(update_url, update_path, 3, 500)
+    if not success then
+        sampAddChatMessage(scriptName .. "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё update.ini РїРѕСЃР»Рµ РЅРµСЃРєРѕР»СЊРєРёС… РїРѕРїС‹С‚РѕРє.", 0xFF0000)
+        return
+    end
 
-                -- Удаляем старый скрипт, если он существует
-                if doesFileExist(script_path) then
-                    local success, errorMsg = os.remove(script_path)
-                    if not success then
-                        sampAddChatMessage(scriptName .. 'Ошибка удаления скрипта: ' .. errorMsg, 0xFF0000)
-                        return
-                    end
-                end
+    -- Р—Р°РіСЂСѓР¶Р°РµРј ini-С„Р°Р№Р»
+    local updateIni = inicfg.load(nil, update_path)
 
-                -- Загружаем новый скрипт
-                downloadUrlToFile(script_url, script_path, function(id, status)
-                    if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                        sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
-                        thisScript():reload()
-                    else
-                        sampAddChatMessage(
-                            scriptName .. 'Ошибка загрузки нового скрипта. Код статуса: ' .. tostring(status), 0xFF0000)
-                    end
-                end)
-            else
-                sampAddChatMessage(scriptName .. 'Обновлений не найдено. Текущая версия: ' .. script_vers_text, 0xFFFFFF)
+    -- РџСЂРѕРІРµСЂСЏРµРј, Р·Р°РіСЂСѓР¶РµРЅ Р»Рё ini-С„Р°Р№Р»
+    if not updateIni then
+        sampAddChatMessage(scriptName .. 'РћС€РёР±РєР°: РЅРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ update.ini.', 0xFF0000)
+        os.remove(update_path)
+        return
+    end
+
+    -- Р”РѕР±Р°РІР»РµРЅРёРµ РїСЂРѕРІРµСЂРєРё РЅР° РЅР°Р»РёС‡РёРµ СЃРµРєС†РёРё [info] Рё РїРѕР»РµР№ vers/vers_text
+    if not updateIni.info or not updateIni.info.vers or not updateIni.info.vers_text then
+        sampAddChatMessage(scriptName .. 'РћС€РёР±РєР°: update.ini РїРѕРІСЂРµР¶РґС‘РЅ РёР»Рё РёРјРµРµС‚ РЅРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚.', 0xFF0000)
+        os.remove(update_path)
+        return
+    end
+
+    -- РџСЂРѕРІРµСЂСЏРµРј РІРµСЂСЃРёСЋ
+    if tonumber(updateIni.info.vers) > script_vers then
+        sampAddChatMessage(scriptName .. 'РќР°Р№РґРµРЅРѕ РѕР±РЅРѕРІР»РµРЅРёРµ! Р’РµСЂСЃРёСЏ: ' .. updateIni.info.vers_text, -1)
+
+        -- РЈРґР°Р»СЏРµРј СЃС‚Р°СЂС‹Р№ СЃРєСЂРёРїС‚, РµСЃР»Рё РѕРЅ СЃСѓС‰РµСЃС‚РІСѓРµС‚
+        if doesFileExist(script_path) then
+            local success = os.remove(script_path)
+            if not success then
+                sampAddChatMessage(scriptName .. 'РћС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ СЃС‚Р°СЂРѕРіРѕ СЃРєСЂРёРїС‚Р°.', 0xFF0000)
+                return
             end
-
-            os.remove(update_path)
-        else
-            -- Добавляем расшифровку кодов статуса
-            local status_message = {
-                [dlstatus.STATUS_FAILED] = "Сбой загрузки.",
-                [dlstatus.STATUS_DOWNLOADINGDATA] = "Загрузка данных.",
-                [dlstatus.STATUS_ENDDOWNLOADDATA] = "Загрузка завершена.",
-                [dlstatus.STATUS_DOWNLOADPENDING] = "Загрузка уже выполняется.",
-                [dlstatus.STATUS_REQUESTREFUSED] = "Сервер отклонил запрос.",
-                [dlstatus.STATUS_WRONGURL] = "Неверный URL.",
-                [dlstatus.STATUS_UNKNOWNERROR] = "Неизвестная ошибка."
-            }
-            local error_msg = status_message[status] or "Неизвестный код статуса: " .. tostring(status)
-            sampAddChatMessage(scriptName .. 'Ошибка загрузки update.ini. ' .. error_msg, 0xFF0000)
         end
-    end)
+
+        -- Р—Р°РіСЂСѓР¶Р°РµРј РЅРѕРІС‹Р№ СЃРєСЂРёРїС‚
+        downloadUrlToFile(script_url, script_path, function(id, status)
+            if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+                sampAddChatMessage(scriptName .. 'РЎРєСЂРёРїС‚ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅ!', -1)
+                thisScript():reload()
+            else
+                sampAddChatMessage(
+                    scriptName .. 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РЅРѕРІРѕРіРѕ СЃРєСЂРёРїС‚Р°. РљРѕРґ СЃС‚Р°С‚СѓСЃР°: ' .. tostring(status), 0xFF0000)
+            end
+        end)
+    else
+        sampAddChatMessage(scriptName .. 'РћР±РЅРѕРІР»РµРЅРёР№ РЅРµ РЅР°Р№РґРµРЅРѕ. РўРµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ: ' .. script_vers_text, 0xFFFFFF)
+    end
+
+    -- РЈРґР°Р»СЏРµРј РІСЂРµРјРµРЅРЅС‹Р№ С„Р°Р№Р» update.ini
+    os.remove(update_path)
 end
