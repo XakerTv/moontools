@@ -37,9 +37,12 @@ function main()
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
             updateIni = inicfg.load(nil, update_path)
-            if tonumber(updateIni.info.vers) > script_vers then
+            if updateIni and updateIni.info and tonumber(updateIni.info.vers) > script_vers then
                 sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
                 update_status = true
+            else
+                sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
+                    0xFF0000)
             end
             os.remove(update_path)
         end
