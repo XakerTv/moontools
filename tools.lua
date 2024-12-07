@@ -16,13 +16,13 @@ u8 = encoding.UTF8
 
 update_state = false
 
-local script_vers = 1
-local script_vers_text = '1.00'
+local script_vers = 2
+local script_vers_text = '2.00'
 
 local update_url = 'https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini'
 local update_path = getWorkingDirectory() .. '/update.ini'
 
-local script_url = 'https://raw.githubusercontent.com/FreXlua/test/main/autoupdate.lua'
+local script_url = 'https://github.com/XakerTv/moontools/raw/refs/heads/main/tools.lua'
 local script_path = thisScript().path
 
 function main()
@@ -30,6 +30,11 @@ function main()
 
     _, id = sampGetPlayerIdByCharHandle(PLAYER_PED)
     nick = sampGetPlayerNickname(id)
+
+    sampAddChatMessage(scriptName .. " Скрипт готов к работе.", 0xFFFFFF)
+    sampAddChatMessage(scriptName .. " С возвращением, " .. nick, 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
+    sampAddChatMessage(betaScriptName .. " Версия скрипта: " .. scriptVersion, 0xBFBFBF)
 
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
