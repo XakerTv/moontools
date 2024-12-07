@@ -31,38 +31,56 @@ function main()
     sampAddChatMessage(scriptName .. " С возвращением, " .. playerName, 0xFFFFFF)
     sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
     sampAddChatMessage(betaScriptName .. " Версия скрипта: " .. scriptVersion, 0xBFBFBF)
-    --sampRegisterChatCommand('mtools', function()
-    --    renderWindow[0] = not renderWindow[0]
-    --end)
-    downloadUrlToFile(update_url, update_path, function(id, status)
-        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            updateIni = inicfg.load(nil, update_path)
-            if updateIni and updateIni.info and tonumber(updateIni.info.vers) > script_vers then
-                sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
-                update_status = true
-            else
-                sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
-                    0xFF0000)
-            end
-            os.remove(update_path)
-        end
+
+    -- Регистрация команды /update
+    sampRegisterChatCommand("update", function()
+        checkForUpdate()
     end)
 
     while true do
         wait(0)
-
         if update_status then
-            downloadUrlToFile(update_url, update_path, function(id, status)
-                if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                    sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
-                    sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ' .. scriptVersion .. '==============',
-                        0x8B59FF)
-                    sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
-                    sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
-                    thisScript():reload()
-                end
-            end)
+            updateScript()
             break
         end
     end
+end
+
+-- Функция для проверки обновлений
+function checkForUpdate()
+    sampAddChatMessage(scriptName .. ' Проверка обновлений...', 0xFFFFFF)
+    downloadUrlToFile(update_url, update_path, function(id, status)
+        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+            local updateIni = inicfg.load(nil, update_path)
+            if updateIni and updateIni.info then
+                if tonumber(updateIni.info.vers) > script_vers then
+                    sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
+                    update_status = true
+                else
+                    sampAddChatMessage(scriptName .. ' У вас последняя версия.', 0xFFFFFF)
+                end
+            else
+                sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
+                    0xFF0000)
+            end
+        else
+            sampAddChatMessage(scriptName .. ' Ошибка загрузки update.ini.', 0xFF0000)
+        end
+    end)
+end
+
+-- Функция для обновления скрипта
+function updateScript()
+    sampAddChatMessage(scriptName .. ' Обновление началось. Пожалуйста, подождите...', 0xFFFFFF)
+    downloadUrlToFile(script_url, script_path, function(id, status)
+        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+            sampAddChatMessage(scriptName .. ' Скрипт успешно обновлен!', -1)
+            sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ ' .. scriptVersion .. ' ==============', 0x8B59FF)
+            sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
+            sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
+            thisScript():reload()
+        elseif status == dlstatus.STATUS_ERROR then
+            sampAddChatMessage(scriptName .. ' Ошибка загрузки нового скрипта.', 0xFF0000)
+        end
+    end)
 end
