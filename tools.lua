@@ -10,16 +10,15 @@ local dlstatus = require('moonloader').download_status
 update_state = false -- Если переменная == true, значит начнётся обновление.
 update_found = false -- Если будет true, будет доступна команда /update.
 
-local script_vers = 1
+local script_vers = 2
 local script_vers_text =
-"1.0" -- Название нашей версии. В будущем будем её выводить ползователю.
+"2.0"                          -- Название нашей версии. В будущем будем её выводить ползователю.
 
 local update_url =
-'https://www.dropbox.com/scl/fi/1mifj2d4jorajt7h8x00z/update.ini?rlkey=i9gtvifpq77ovdviyykofkyoa&st=6h1bmzqo&dl=0' -- Путь к ini файлу. Позже нам понадобиться.
+'https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini' -- Путь к ini файлу. Позже нам понадобиться.
 local update_path = getWorkingDirectory() .. "/update.ini"
 
-local script_url =
-'https://www.dropbox.com/scl/fi/v9viclmaf7utsu1hqwlew/tools.lua?rlkey=y7nur7pnzh1t7imu7ptnmnb1u&st=v9m88tj0&dl=0' -- Путь скрипту.
+local script_url = 'https://github.com/XakerTv/moontools/raw/refs/heads/main/tools.lua' -- Путь скрипту.
 local script_path = thisScript().path
 
 scriptName = "{8B59FF}[ Luna Tools ]{FFFFFF}"
