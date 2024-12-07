@@ -1,5 +1,5 @@
-script_name("LunaTools")    -- РѕС‚Р»Р°РґРєР°
-script_author("HermitTech") -- Р°РІС‚РѕСЂ
+script_name("LunaTools")
+script_author("HermitTech")
 script_description("Luna Tools. Vers. 1")
 script_version("1")
 
@@ -10,8 +10,8 @@ local inicfg = require 'inicfg'
 
 update_status = false
 
-local script_vers = 2
-local script_vers_text = "1.01"
+local script_vers = 3
+local script_vers_text = "1.03"
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini"
 local update_path = getWorkingDirectory() .. "/update.ini"
@@ -36,17 +36,24 @@ function main()
     --end)
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            updateIni = inicfg.load(nil, update_path)
-            if updateIni and updateIni.info and tonumber(updateIni.info.vers) > script_vers then
-                sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
-                update_status = true
+            local updateIni = inicfg.load(nil, update_path) -- Загрузить ini-файл
+            if updateIni and updateIni.info then            -- Проверяем, что updateIni и его секция info существуют
+                if tonumber(updateIni.info.vers) > script_vers then
+                    sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
+                    update_status = true
+                else
+                    sampAddChatMessage(scriptName .. ' У вас последняя версия.', 0xFFFFFF)
+                end
             else
                 sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
                     0xFF0000)
             end
-            os.remove(update_path)
+            os.remove(update_path) -- Удаляем временный файл
+        else
+            sampAddChatMessage(scriptName .. ' Ошибка загрузки update.ini.', 0xFF0000)
         end
     end)
+
 
     while true do
         wait(0)
