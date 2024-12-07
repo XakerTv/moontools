@@ -38,12 +38,20 @@ function main()
 
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            updateIni = inicfg.load(nil, update_path)
-            if tonumber(updateIni.info.vers) > script_vers then
-                sampAddChatMessage(scriptName .. 'Есть обновление скрипта! Устанавливаем...', 0xff0000)
-                update_state = true
+            if doesFileExist(update_path) then
+                updateIni = inicfg.load(nil, update_path)
+                if updateIni and tonumber(updateIni.info.vers) > script_vers then
+                    sampAddChatMessage(scriptName .. ' Есть обновление скрипта! Устанавливаем...', 0xff0000)
+                    update_state = true
+                else
+                    sampAddChatMessage(scriptName .. ' Ошибка: некорректный файл обновления.', 0xff0000)
+                end
+                os.remove(update_path)
+            else
+                sampAddChatMessage(scriptName .. ' Ошибка: файл обновления не найден.', 0xff0000)
             end
-            os.remove(update_path)
+        else
+            sampAddChatMessage(scriptName .. ' Ошибка: не удалось скачать файл обновления.', 0xff0000)
         end
     end)
 
