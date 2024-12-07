@@ -17,8 +17,8 @@ scriptName = "{8B59FF}[ Luna Tools ]{FFFFFF}"
 betaScriptName = "[ Luna | DeBug ]"
 scriptVersion = "1a"
 
-local script_vers = 2
-local script_vers_text = '2.0'
+local script_vers = 1
+local script_vers_text = '1.0'
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini" -- ini
 local update_path = getWorkingDirectory() .. '/update.ini'
@@ -47,25 +47,32 @@ end
 function cmd_update()
     sampAddChatMessage(scriptName .. 'Проверка обновлений...', 0xFFFFFF)
 
-    -- Удаляем временный файл, если он остался от предыдущей загрузки
+    -- Проверяем и удаляем временный файл update.ini, если он существует
     if doesFileExist(update_path) then
-        os.remove(update_path)
+        local success, errorMsg = os.remove(update_path)
+        if not success then
+            sampAddChatMessage(scriptName .. 'Ошибка удаления update.ini: ' .. errorMsg, 0xFF0000)
+            return
+        end
     end
 
-    -- Загрузка файла update.ini
+    -- Загружаем файл update.ini
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
             local updateIni = inicfg.load(nil, update_path)
             if tonumber(updateIni.info.vers) > script_vers then
                 sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
-                update_state = true
 
-                -- Проверяем, занят ли файл скрипта
+                -- Проверяем и удаляем файл старого скрипта, если он существует
                 if doesFileExist(script_path) then
-                    os.remove(script_path) -- Удаляем старый скрипт
+                    local success, errorMsg = os.remove(script_path)
+                    if not success then
+                        sampAddChatMessage(scriptName .. 'Ошибка удаления скрипта: ' .. errorMsg, 0xFF0000)
+                        return
+                    end
                 end
 
-                -- Загрузка нового скрипта
+                -- Загружаем новый скрипт
                 downloadUrlToFile(script_url, script_path, function(id, status)
                     if status == dlstatus.STATUS_ENDDOWNLOADDATA then
                         sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
@@ -75,7 +82,8 @@ function cmd_update()
                         sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
                         thisScript():reload()
                     else
-                        sampAddChatMessage(scriptName .. 'Ошибка загрузки нового скрипта.', 0xFF0000)
+                        sampAddChatMessage(
+                            scriptName .. 'Ошибка загрузки нового скрипта. Код статуса: ' .. tostring(status), 0xFF0000)
                     end
                 end)
             else
@@ -83,8 +91,10 @@ function cmd_update()
             end
 
             os.remove(update_path) -- Удаляем временный файл
+        elseif status == dlstatus.STATUS_DOWNLOADPENDING then
+            sampAddChatMessage(scriptName .. 'Загрузка уже выполняется. Попробуйте позже.', 0xFF0000)
         else
-            sampAddChatMessage(scriptName .. 'Ошибка проверки обновлений.', 0xFF0000)
+            sampAddChatMessage(scriptName .. 'Ошибка загрузки update.ini. Код статуса: ' .. tostring(status), 0xFF0000)
         end
     end)
 end
