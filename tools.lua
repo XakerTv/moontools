@@ -17,8 +17,8 @@ scriptName = "{8B59FF}[ Luna Tools ]{FFFFFF}"
 betaScriptName = "[ Luna | DeBug ]"
 scriptVersion = "1a"
 
-local script_vers = 1
-local script_vers_text = '1.0'
+local script_vers = 2
+local script_vers_text = '2.0'
 
 local update_url = "https://raw.githubusercontent.com/XakerTv/moontools/refs/heads/main/update.ini" -- ini
 local update_path = getWorkingDirectory() .. '/update.ini'
@@ -47,7 +47,7 @@ end
 function cmd_update()
     sampAddChatMessage(scriptName .. 'Проверка обновлений...', 0xFFFFFF)
 
-    -- Проверяем и удаляем временный файл update.ini, если он существует
+    -- Удаляем временный файл update.ini, если он существует
     if doesFileExist(update_path) then
         local success, errorMsg = os.remove(update_path)
         if not success then
@@ -63,7 +63,7 @@ function cmd_update()
             if tonumber(updateIni.info.vers) > script_vers then
                 sampAddChatMessage(scriptName .. 'Найдено обновление! Версия: ' .. updateIni.info.vers_text, -1)
 
-                -- Проверяем и удаляем файл старого скрипта, если он существует
+                -- Удаляем старый скрипт, если он существует
                 if doesFileExist(script_path) then
                     local success, errorMsg = os.remove(script_path)
                     if not success then
@@ -76,10 +76,6 @@ function cmd_update()
                 downloadUrlToFile(script_url, script_path, function(id, status)
                     if status == dlstatus.STATUS_ENDDOWNLOADDATA then
                         sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
-                        sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ' .. scriptVersion .. '==============',
-                            0x8B59FF)
-                        sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
-                        sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
                         thisScript():reload()
                     else
                         sampAddChatMessage(
@@ -90,11 +86,20 @@ function cmd_update()
                 sampAddChatMessage(scriptName .. 'Обновлений не найдено. Текущая версия: ' .. script_vers_text, 0xFFFFFF)
             end
 
-            os.remove(update_path) -- Удаляем временный файл
-        elseif status == dlstatus.STATUS_DOWNLOADPENDING then
-            sampAddChatMessage(scriptName .. 'Загрузка уже выполняется. Попробуйте позже.', 0xFF0000)
+            os.remove(update_path)
         else
-            sampAddChatMessage(scriptName .. 'Ошибка загрузки update.ini. Код статуса: ' .. tostring(status), 0xFF0000)
+            -- Добавляем расшифровку кодов статуса
+            local status_message = {
+                [dlstatus.STATUS_FAILED] = "Сбой загрузки.",
+                [dlstatus.STATUS_DOWNLOADINGDATA] = "Загрузка данных.",
+                [dlstatus.STATUS_ENDDOWNLOADDATA] = "Загрузка завершена.",
+                [dlstatus.STATUS_DOWNLOADPENDING] = "Загрузка уже выполняется.",
+                [dlstatus.STATUS_REQUESTREFUSED] = "Сервер отклонил запрос.",
+                [dlstatus.STATUS_WRONGURL] = "Неверный URL.",
+                [dlstatus.STATUS_UNKNOWNERROR] = "Неизвестная ошибка."
+            }
+            local error_msg = status_message[status] or "Неизвестный код статуса: " .. tostring(status)
+            sampAddChatMessage(scriptName .. 'Ошибка загрузки update.ini. ' .. error_msg, 0xFF0000)
         end
     end)
 end
