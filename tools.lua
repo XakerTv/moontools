@@ -62,20 +62,30 @@ end
 function checkForUpdates()
     downloadUrlToFile(update_url, update_path, function(id, status)
         if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            local updateIni = inicfg.load(nil, update_path)
-            if updateIni and updateIni.info then
-                if tonumber(updateIni.info.vers) > script_vers then
-                    sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
-                    update_status = true -- Обновление доступно
+            -- Проверяем наличие файла
+            local file = io.open(update_path, "r")
+            if file then
+                local content = file:read("*all")
+                file:close()
+                sampAddChatMessage(scriptName .. " Содержимое update.ini: " .. content, 0xFFFFFF)
+
+                -- Загружаем INI-файл
+                local updateIni = inicfg.load(nil, update_path)
+                if updateIni and updateIni.info then
+                    if tonumber(updateIni.info.vers) > script_vers then
+                        sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
+                        update_status = true
+                    else
+                        sampAddChatMessage(scriptName .. ' У вас последняя версия.', 0xFFFFFF)
+                    end
                 else
-                    sampAddChatMessage(scriptName .. ' У вас последняя версия.', 0xFFFFFF)
+                    sampAddChatMessage(scriptName .. ' Ошибка формата update.ini.', 0xFF0000)
                 end
             else
-                sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
-                    0xFF0000)
+                sampAddChatMessage(scriptName .. ' Файл update.ini отсутствует или недоступен.', 0xFF0000)
             end
         else
-            sampAddChatMessage(scriptName .. ' Ошибка загрузки update.ini.', 0xFF0000)
+            sampAddChatMessage(scriptName .. ' Ошибка загрузки update.ini. Код статуса: ' .. tostring(status), 0xFF0000)
         end
     end)
 end
