@@ -31,61 +31,38 @@ function main()
     sampAddChatMessage(scriptName .. " С возвращением, " .. playerName, 0xFFFFFF)
     sampAddChatMessage(betaScriptName .. " Открыть главное меню: /mtools", 0xFFFFFF)
     sampAddChatMessage(betaScriptName .. " Версия скрипта: " .. scriptVersion, 0xBFBFBF)
-
-    -- Проверка обновлений
-    checkForUpdates()
+    --sampRegisterChatCommand('mtools', function()
+    --    renderWindow[0] = not renderWindow[0]
+    --end)
+    downloadUrlToFile(update_url, update_path, function(id, status)
+        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
+            updateIni = inicfg.load(nil, update_path)
+            if updateIni and updateIni.info and tonumber(updateIni.info.vers) > script_vers then
+                sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
+                update_status = true
+            else
+                sampAddChatMessage(scriptName .. ' Ошибка: update.ini отсутствует или имеет неправильный формат.',
+                    0xFF0000)
+            end
+            os.remove(update_path)
+        end
+    end)
 
     while true do
         wait(0)
 
-        -- Если обновление доступно, запускаем скачивание
         if update_status then
-            sampAddChatMessage(scriptName .. ' Обновление началось. Пожалуйста, подождите...', 0xFFFFFF)
-            downloadUrlToFile(script_url, script_path, function(id, status)
+            downloadUrlToFile(update_url, update_path, function(id, status)
                 if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-                    sampAddChatMessage(scriptName .. ' Скрипт успешно обновлен!', 0x00FF00)
-                    sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ ' .. scriptVersion .. ' ==============',
+                    sampAddChatMessage(scriptName .. 'Скрипт успешно обновлен!', -1)
+                    sampAddChatMessage(scriptName .. '==============ОБНОВЛЕНИЕ' .. scriptVersion .. '==============',
                         0x8B59FF)
                     sampAddChatMessage(scriptName .. '* Добавлено: *', -1)
-                    sampAddChatMessage(scriptName .. '- Функция автообновления [FIXED]', -1)
-                    thisScript():reload() -- Перезагрузка скрипта
-                elseif status == dlstatus.STATUS_ERROR then
-                    sampAddChatMessage(scriptName .. ' Ошибка загрузки нового скрипта.', 0xFF0000)
+                    sampAddChatMessage(scriptName .. '- Функция автообновления', -1)
+                    thisScript():reload()
                 end
             end)
             break
         end
     end
-end
-
--- Функция проверки обновлений
-function checkForUpdates()
-    downloadUrlToFile(update_url, update_path, function(id, status)
-        if status == dlstatus.STATUS_ENDDOWNLOADDATA then
-            -- Проверяем наличие файла
-            local file = io.open(update_path, "r")
-            if file then
-                local content = file:read("*all")
-                file:close()
-                sampAddChatMessage(scriptName .. " Содержимое update.ini: " .. content, 0xFFFFFF)
-
-                -- Загружаем INI-файл
-                local updateIni = inicfg.load(nil, update_path)
-                if updateIni and updateIni.info then
-                    if tonumber(updateIni.info.vers) > script_vers then
-                        sampAddChatMessage(scriptName .. ' Доступно обновление! Версия: ' .. updateIni.info.vers_text, -1)
-                        update_status = true
-                    else
-                        sampAddChatMessage(scriptName .. ' У вас последняя версия.', 0xFFFFFF)
-                    end
-                else
-                    sampAddChatMessage(scriptName .. ' Ошибка формата update.ini.', 0xFF0000)
-                end
-            else
-                sampAddChatMessage(scriptName .. ' Файл update.ini отсутствует или недоступен.', 0xFF0000)
-            end
-        else
-            sampAddChatMessage(scriptName .. ' Ошибка загрузки update.ini. Код статуса: ' .. tostring(status), 0xFF0000)
-        end
-    end)
 end
